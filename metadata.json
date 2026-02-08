@@ -1,6 +1,6 @@
 {
-  "name": "agentic_UI",
-  "description": "Put Gemini 3 Flash's creativity and coding abilities to the test. Rapidly generate UI, explore variations, and export code.",
+  "name": "Signal Canvas UI",
+  "description": "A technical design showcase by Third Signal Lab exploring the generative boundaries of Gemini 3 Flash.",
   "requestFramePermissions": [],
   "prompt": ""
 }

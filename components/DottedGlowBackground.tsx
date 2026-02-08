@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -5,29 +6,7 @@
 
 import React, { useEffect, useRef } from 'react';
 
-type DottedGlowBackgroundProps = {
-  className?: string;
-  gap?: number;
-  radius?: number;
-  color?: string;
-  glowColor?: string;
-  opacity?: number;
-  speedMin?: number;
-  speedMax?: number;
-  speedScale?: number;
-};
-
-export default function DottedGlowBackground({
-  className,
-  gap = 12,
-  radius = 2,
-  color = "rgba(255,255,255,0.1)",
-  glowColor = "rgba(255, 255, 255, 0.8)",
-  opacity = 1,
-  speedMin = 0.5,
-  speedMax = 1.5,
-  speedScale = 0.8,
-}: DottedGlowBackgroundProps) {
+export default function KryptonHudBackground() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,7 +20,6 @@ export default function DottedGlowBackground({
 
     let raf = 0;
     let stopped = false;
-
     const dpr = Math.max(1, window.devicePixelRatio || 1);
 
     const resize = () => {
@@ -55,59 +33,89 @@ export default function DottedGlowBackground({
 
     const ro = new ResizeObserver(resize);
     ro.observe(container);
-    setTimeout(resize, 0);
+    resize();
 
-    let dots: { x: number; y: number; phase: number; speed: number }[] = [];
+    const hexSize = 60;
+    const hexHeight = Math.sqrt(3) * hexSize;
+    const hexWidth = 2 * hexSize;
 
-    const regenDots = () => {
-      dots = [];
+    const drawHexagon = (x: number, y: number, size: number, alpha: number) => {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        ctx.lineTo(x + size * Math.cos(angle), y + size * Math.sin(angle));
+      }
+      ctx.closePath();
+      ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    };
+
+    const drawGrid = (time: number) => {
       const { width, height } = container.getBoundingClientRect();
-      const cols = Math.ceil(width / gap) + 2;
-      const rows = Math.ceil(height / gap) + 2;
-      for (let i = -1; i < cols; i++) {
-        for (let j = -1; j < rows; j++) {
-          const x = i * gap + (j % 2 === 0 ? 0 : gap * 0.5);
-          const y = j * gap;
-          dots.push({
-            x,
-            y,
-            phase: Math.random() * Math.PI * 2,
-            speed: speedMin + Math.random() * (speedMax - speedMin),
-          });
+      const cols = Math.ceil(width / (hexWidth * 0.75)) + 1;
+      const rows = Math.ceil(height / hexHeight) + 1;
+
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          const x = i * hexWidth * 0.75;
+          const y = j * hexHeight + (i % 2 === 0 ? 0 : hexHeight / 2);
+          
+          // Distance based pulsing
+          const dx = x - width / 2;
+          const dy = y - height / 2;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const alpha = (0.05 + 0.05 * Math.sin(time / 2000 - dist / 500)) * (1 - dist / 2000);
+          
+          if (alpha > 0) drawHexagon(x, y, hexSize, alpha);
         }
       }
     };
 
-    regenDots();
-    window.addEventListener("resize", regenDots);
+    const drawHudElements = (time: number) => {
+        const { width, height } = container.getBoundingClientRect();
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        ctx.lineWidth = 1;
+        
+        // Rotating Arcs
+        for (let i = 0; i < 3; i++) {
+            const radius = 200 + i * 50;
+            const speed = (i + 1) * 0.0005;
+            const startAngle = time * speed;
+            const endAngle = startAngle + Math.PI / 2;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.strokeStyle = `rgba(34, 211, 238, 0.1)`;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startAngle + Math.PI, endAngle + Math.PI);
+            ctx.stroke();
+        }
+
+        // Scanning line
+        const scanY = (time * 0.1) % height;
+        ctx.beginPath();
+        ctx.moveTo(0, scanY);
+        ctx.lineTo(width, scanY);
+        const grad = ctx.createLinearGradient(0, scanY - 50, 0, scanY + 50);
+        grad.addColorStop(0, 'rgba(34, 211, 238, 0)');
+        grad.addColorStop(0.5, 'rgba(34, 211, 238, 0.05)');
+        grad.addColorStop(1, 'rgba(34, 211, 238, 0)');
+        ctx.strokeStyle = grad;
+        ctx.stroke();
+    };
 
     const draw = (now: number) => {
       if (stopped) return;
       const { width, height } = container.getBoundingClientRect();
       ctx.clearRect(0, 0, width, height);
-      ctx.globalAlpha = opacity;
-
-      const time = (now / 1000) * speedScale;
-
-      dots.forEach((d) => {
-        const mod = (time * d.speed + d.phase) % 2;
-        const lin = mod < 1 ? mod : 2 - mod;
-        const intensity = 0.1 + 0.9 * (lin * lin);
-
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, radius, 0, Math.PI * 2);
-        
-        if (intensity > 0.7) {
-           ctx.fillStyle = glowColor;
-           ctx.shadowColor = glowColor;
-           ctx.shadowBlur = 8 * (intensity - 0.7) * 3;
-        } else {
-           ctx.fillStyle = color;
-           ctx.shadowBlur = 0;
-        }
-        ctx.globalAlpha = opacity * (intensity > 0.7 ? 1 : 0.3 + intensity * 0.5); 
-        ctx.fill();
-      });
+      
+      drawGrid(now);
+      drawHudElements(now);
 
       raf = requestAnimationFrame(draw);
     };
@@ -117,13 +125,12 @@ export default function DottedGlowBackground({
     return () => {
       stopped = true;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", regenDots);
       ro.disconnect();
     };
-  }, [gap, radius, color, glowColor, opacity, speedMin, speedMax, speedScale]);
+  }, []);
 
   return (
-    <div ref={containerRef} className={className} style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+    <div ref={containerRef} style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: 'none' }}>
       <canvas ref={canvasRef} style={{ display: "block" }} />
     </div>
   );

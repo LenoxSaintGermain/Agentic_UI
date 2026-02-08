@@ -1,0 +1,14 @@
+status: live
+title: Signal Canvas UI
+pitch: A high-fidelity generative UI showcase exploring rapid design variations and technical Kryptonian aesthetics.
+category: developer-tools
+platform: cloudrun
+featured: true
+live_url: https://signal-canvas-ui-414737114778.us-west1.run.app
+cover_prompt: High-tech crystalline HUD interface with glowing teal geometry and data streams, Kryptonian style.
+tags:
+  - ai
+  - generative-ui
+  - gemini-3
+  - third-signal-lab
+  - hud-design
